@@ -6,7 +6,7 @@ import os
 import pandas as pd
 import skimage.io as io
 from scipy.misc import imresize
-from sklearn.preprocessing import OneHotEncoder
+from sklearn.preprocessing import LabelBinarizer
 
 #TODO: change to absolute path
 data_root_path = "../../all/"
@@ -17,6 +17,10 @@ SCALE = 20
 DISPLAY_SAMPLE = True
 SAMPLE_SIZE = 2
 
+
+def one_hot_encode(y):
+    lb = LabelBinarizer().fit(range(10))
+    return lb.transform(y)
 
 def scale(img):
     return imresize(img, (img.shape[0] // SCALE, img.shape[1] // SCALE))
@@ -56,6 +60,7 @@ def load_training_data():
         io.show()
 
     print(y_train)
+    print(one_hot_encode(y_train))
 
 
 def main():
