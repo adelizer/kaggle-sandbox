@@ -12,7 +12,17 @@ data_root_path = "../../all/"
 
 # The default image shape is (480, 640, 3)
 
-SCALE = 10
+SCALE = 20
+DISPLAY_SAMPLE = True
+SAMPLE_SIZE = 2
+
+
+def scale(img):
+    return imresize(img, (img.shape[0] // SCALE, img.shape[1] // SCALE))
+
+
+def normalize(img):
+    return img.astype(float) / img.max()
 
 
 def load_training_data():
@@ -24,18 +34,25 @@ def load_training_data():
     x_train = []
     y_train = []
 
-    for i in range(number_of_classes):
-        training_group = grouped_training_img_list.get_group('c{}'.format(i))
-        group_path = os.path.join(data_root_path, 'imgs/train/c{}/'.format(i)) + training_group.img
+    for class_number in range(number_of_classes):
+        training_group = grouped_training_img_list.get_group('c{}'.format(class_number))
+        group_path = os.path.join(data_root_path, 'imgs/train/c{}/'.format(class_number)) + training_group.img
 
-        # read a sample of images
-        img = io.imread(group_path.tolist()[0])
-        img = imresize(img, (img.shape[0]//SCALE, img.shape[1]//SCALE))
-        x_train.append(img)
-        y_train.append(i)
+        # sanity check
+        print("number of image files for class {} is {}".format(class_number, len(group_path)))
 
-    io.imshow_collection(x_train)
-    io.show()
+        for single_img_path in group_path.tolist()[0:SAMPLE_SIZE]:
+            img = io.imread(single_img_path)
+            img = scale(img)
+            img = normalize(img)
+            x_train.append(img)
+            y_train.append(img)
+
+    print("sample image data: shape[{}] max [{}] min[{}]".format(img.shape, img.max(),
+                                                                 img.min()))
+    if DISPLAY_SAMPLE:
+        io.imshow_collection(x_train)
+        io.show()
 
 
 def main():
