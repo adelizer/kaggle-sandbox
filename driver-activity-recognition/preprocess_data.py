@@ -6,6 +6,7 @@ import os
 import pandas as pd
 import skimage.io as io
 from scipy.misc import imresize
+from sklearn.preprocessing import OneHotEncoder
 
 #TODO: change to absolute path
 data_root_path = "../../all/"
@@ -46,13 +47,15 @@ def load_training_data():
             img = scale(img)
             img = normalize(img)
             x_train.append(img)
-            y_train.append(img)
+            y_train.append(class_number)
 
     print("sample image data: shape[{}] max [{}] min[{}]".format(img.shape, img.max(),
                                                                  img.min()))
     if DISPLAY_SAMPLE:
         io.imshow_collection(x_train)
         io.show()
+
+    print(y_train)
 
 
 def main():
