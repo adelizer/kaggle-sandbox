@@ -18,7 +18,7 @@ data_root_path = "../../all/"
 
 SCALE = 15
 DISPLAY_SAMPLE = False
-SAMPLE_SIZE = 50
+SAMPLE_SIZE = 200
 CLASSES = ["c0 - safe driving",
            "c1 - texting - right",
            "c2 - talking on the phone - right",
@@ -79,6 +79,7 @@ def load_dump_training_data():
 
     with open("preprocessed_data.pkl", 'wb') as f:
         pickle.dump((x_train, y_train), f)
+
 
 def main():
     load_dump_training_data()
