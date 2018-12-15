@@ -4,6 +4,7 @@ Load training images and labels of the drivers and preprocess them
 """
 import os
 import pickle
+import glob
 import pandas as pd
 import numpy as np
 import skimage.io as io
@@ -17,8 +18,8 @@ data_root_path = "../../all/"
 # The default image shape is (480, 640, 3)
 
 SCALE = 15
-DISPLAY_SAMPLE = False
-SAMPLE_SIZE = 200
+DISPLAY_SAMPLE = True
+SAMPLE_SIZE = 2
 CLASSES = ["c0 - safe driving",
            "c1 - texting - right",
            "c2 - talking on the phone - right",
@@ -42,6 +43,25 @@ def scale(img):
 
 def normalize(img):
     return img.astype(float) / img.max()
+
+
+def load_dump_test_data():
+    paths = glob.glob(os.path.join(data_root_path, 'imgs/test/*.jpg'))[0:SAMPLE_SIZE]
+    x_test = []
+    y_test = []
+    for single_img_path in tqdm(enumerate(paths), total=len(paths)):
+        img = io.imread(single_img_path[1])
+        img = scale(img)
+        img = normalize(img)
+        x_test.append(img)
+
+    x_test = np.array(x_test)
+
+    if DISPLAY_SAMPLE:
+        io.imshow_collection(x_test)
+        io.show()
+
+
 
 
 def load_dump_training_data():
@@ -82,8 +102,8 @@ def load_dump_training_data():
 
 
 def main():
-    load_dump_training_data()
-
+    # load_dump_training_data()
+    load_dump_test_data()
 
 if __name__ == "__main__":
     main()
