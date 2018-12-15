@@ -18,7 +18,7 @@ data_root_path = "../../all/"
 # The default image shape is (480, 640, 3)
 
 SCALE = 15
-DISPLAY_SAMPLE = True
+DISPLAY_SAMPLE = False
 SAMPLE_SIZE = 2
 CLASSES = ["c0 - safe driving",
            "c1 - texting - right",
@@ -46,7 +46,7 @@ def normalize(img):
 
 
 def load_dump_test_data():
-    paths = glob.glob(os.path.join(data_root_path, 'imgs/test/*.jpg'))[0:SAMPLE_SIZE]
+    paths = glob.glob(os.path.join(data_root_path, 'imgs/test/*.jpg'))[0:500]
     x_test = []
     y_test = []
     for single_img_path in tqdm(enumerate(paths), total=len(paths)):
@@ -60,6 +60,9 @@ def load_dump_test_data():
     if DISPLAY_SAMPLE:
         io.imshow_collection(x_test)
         io.show()
+
+    with open("test_data.pkl", 'wb') as f:
+        pickle.dump((x_test), f)
 
 
 
