@@ -17,9 +17,9 @@ data_root_path = "../../all/"
 
 # The default image shape is (480, 640, 3)
 
-SCALE = 15
+SCALE = 5
 DISPLAY_SAMPLE = False
-SAMPLE_SIZE = 2
+SAMPLE_SIZE = 500
 CLASSES = ["c0 - safe driving",
            "c1 - texting - right",
            "c2 - talking on the phone - right",
@@ -105,8 +105,8 @@ def load_dump_training_data():
 
 
 def main():
-    # load_dump_training_data()
-    load_dump_test_data()
+    load_dump_training_data()
+    # load_dump_test_data()
 
 if __name__ == "__main__":
     main()
