@@ -42,6 +42,8 @@ def main():
     x_train_df, y_train_df = read_data()
     welch_array, fft_array = compute_freq(x_train_df)
     print(welch_array.shape, fft_array.shape)
+    np.save('welch_train', welch_array)
+    np.save('fft_train', fft_array)
 
 
 if __name__ == '__main__':
