@@ -1,0 +1,10 @@
+Introduction Section:
+
+One of the key challenges is getting the informal and subjective knowledge that humans use in daily life into the computer.
+The classical AI approaches used formal languages and a set of logical rules to allow machines to reason. This is knowledge based approach to AI.
+The other approach is to allow AI to extract its own data by finding patterns in the input raw. Hence Machine learning was introudced. Logistic regression, naive Bayes. The key element in ML is the representation which is used to describe a certain situation. These are the features fed to the AI. The choice of the correct represtnation has a huge impact on the performance. The system can automatically discover a good set of features to solve the task at hand.
+Simple to complex heirarchial representations. 
+
+How to disentangle the factors of variation ? 
+Deep llearning in some prespective is the learning of a suitable representation. DL breaks down the complicated function mapping between raw data and the output to simpler mappings that build on top of each other
+
