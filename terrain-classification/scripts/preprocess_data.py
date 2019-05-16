@@ -38,12 +38,23 @@ def compute_freq(df):
     return welch_array, fft_array
 
 
+def extract_welch(df):
+    m = df.series_id.nunique()
+    welch_agg = np.empty((m, 6, 33))
+    for i in tqdm(range(m)):
+        curr = df.loc[df.series_id == i, 'angular_velocity_X':'linear_acceleration_Z']
+        for c in range(len(curr.columns)):
+            _, out = signal.welch(curr.iloc[:,c].values, nperseg=64)
+            welch_agg[i, c, :] = out
+
+    return welch_agg
+
+
 def main():
     x_train_df, y_train_df = read_data()
-    welch_array, fft_array = compute_freq(x_train_df)
-    print(welch_array.shape, fft_array.shape)
-    np.save('welch_train', welch_array)
-    np.save('fft_train', fft_array)
+    welch_train = extract_welch(x_train_df)
+    print("Extracted welch response from training data: ", welch_train.shape)
+    np.save('welch_train', welch_train)
 
 
 if __name__ == '__main__':
