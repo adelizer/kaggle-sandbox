@@ -1,12 +1,12 @@
 """
 prepares the data
 """
-
+import cesium
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 from scipy import signal
 from tqdm import tqdm
+from cesium import featurize
 
 
 def read_data():
@@ -27,7 +27,7 @@ def compute_freq(df):
     fft_array = np.empty((m, 10, n_fft))
 
     for i in tqdm(range(m)):
-        curr = df.loc[df.series_id == i, 'orientation_X':'linear_acceleration_Z'].values #(128, 10)
+        curr = df.loc[df.series_id == i, 'angular_velocity_X':'linear_acceleration_Z'].values #(128, 10)
         for j in range(curr.shape[1]):
             sig = curr[:, j]
             _, out_welch = signal.welch(sig, nperseg=128)
@@ -36,6 +36,51 @@ def compute_freq(df):
             fft_array[i,j,:] = out_fft[1:]
 
     return welch_array, fft_array
+
+
+def gen_feats(data):
+    features_to_use = cesium.features.GENERAL_FEATS
+    feats_to_remove = ['amplitude',
+        'flux_percentile_ratio_mid20',
+ 'flux_percentile_ratio_mid35',
+ 'flux_percentile_ratio_mid50',
+ 'flux_percentile_ratio_mid65',
+ 'flux_percentile_ratio_mid80',
+ 'max_slope',
+ # 'maximum',
+ 'median',
+ 'median_absolute_deviation',
+ 'minimum',
+ 'percent_amplitude',
+ 'percent_beyond_1_std',
+ 'percent_close_to_median',
+ 'percent_difference_flux_percentile',
+ 'period_fast',
+ 'qso_log_chi2_qsonu',
+ 'qso_log_chi2nuNULL_chi2nu',
+ 'skew',
+ 'std',
+ 'stetson_j',
+ 'stetson_k',
+ 'weighted_average']
+    for f in feats_to_remove:
+        features_to_use.remove(f)
+    print(features_to_use)
+
+    m = data.shape[0]
+
+    n_features = len(features_to_use) * data.shape[1]
+
+    agg = np.empty((m, n_features))
+    for i in tqdm(range(m)):  # for all training examples
+        curr = data[i, :, :]
+        fset_curr = featurize.featurize_time_series(times=None,
+                                                    values=curr,
+                                                    # values: (n,) array or (p, n) array (for p channels of measurement)
+                                                    errors=None,
+                                                    features_to_use=features_to_use)
+        agg[i, :] = fset_curr
+    return agg
 
 
 def extract_welch(df):
@@ -51,10 +96,14 @@ def extract_welch(df):
 
 
 def main():
-    x_train_df, y_train_df = read_data()
-    welch_train = extract_welch(x_train_df)
+    # x_train_df, y_train_df = read_data()
+    # welch_train = extract_welch(x_train_df)
+    welch_train = np.load('welch_train.npy')
     print("Extracted welch response from training data: ", welch_train.shape)
+    welch_train_feats = gen_feats(welch_train[:,0:2,:])
+    print("Extracted features from welch response: ", welch_train_feats.shape)
     np.save('welch_train', welch_train)
+    np.save('welch_train_feats', welch_train_feats)
 
 
 if __name__ == '__main__':
