@@ -2,12 +2,44 @@
 Create a data loading pipeline using tensorflow datasets
 """
 
+
+from abc import ABC, abstractmethod
+
 import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras.utils import to_categorical
 
+
+class BaseDataLoader(ABC):
+    @abstractmethod
+    def get_dataset(self) -> tf.data.Dataset:
+        pass
+
+
+class StandardDataLoader(BaseDataLoader):
+    def __init__(self, flags):
+        # self._flags = flags
+        # self._csv_file = self._flags.csv_file
+        self._df = pd.read_csv(flags)
+        self._ds = None
+        self._image_datagen = ImageDataGenerator()
+        self._datagen = self._image_datagen.flow_from_dataframe(self._df, x_col='path', y_col='class_label',
+                                                                target_size=(512, 743), shuffle=False)
+
+    def make_generator(self):
+        return self._datagen
+
+    def get_dataset(self) -> tf.data.Dataset:
+        n_channels = 3
+        if self._datagen.color_mode == 'grayscale':
+            n_channels = 1
+        x_shape = [self._datagen.batch_size, ] + list(self._datagen.target_size) + [n_channels, ]
+        y_shape = [self._datagen.batch_size, len(self._datagen.class_indices)]
+        self._ds = tf.data.Dataset.from_generator(self.make_generator, output_types=(tf.float32, tf.float32),
+                                                  output_shapes=(x_shape, y_shape))
+        return self._ds
 
 class DataLoader:
     def __init__(self):
