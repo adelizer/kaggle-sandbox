@@ -4,9 +4,7 @@ A simple script to experiment with tensorboard logging for keras entities
 import sys
 import math
 import logging
-from time import time
 
-import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras.utils import to_categorical
 from sklearn.datasets import make_classification
@@ -19,11 +17,6 @@ LOGFORMAT = '%(asctime)s | %(levelname)s | [%(filename)s:%(lineno)s - %(funcName
 logging.basicConfig(format=LOGFORMAT, stream=sys.stdout)
 
 
-class LearningRateLogger(Callback):
-    def on_batch_begin(self, batch, logs=None):
-        print(K.get_value(self.model.optimizer.lr))
-
-
 class LRTensorBoard(TensorBoard):
     def __init__(self, log_dir, **kwargs):
         super().__init__(log_dir=log_dir, **kwargs)
@@ -33,12 +26,18 @@ class LRTensorBoard(TensorBoard):
         super().on_epoch_end(epoch, logs)
 
 
-def step_decay(epoch):
-    initial_lrate = 0.001
-    drop = 0.5
-    epochs_drop = 10.0
-    lrate = initial_lrate * math.pow(drop, math.floor((1 + epoch) / epochs_drop))
-    return lrate
+class MyLearningRateScheduler(LearningRateScheduler):
+    def __init__(self):
+        super().__init__(self.step_decay)
+
+    @staticmethod
+    def step_decay(epoch):
+        initial_lrate = 0.001
+        drop = 0.5
+        epochs_drop = 10.0
+        lrate = initial_lrate * math.pow(drop, math.floor((1 + epoch) / epochs_drop))
+        logging.debug("Learning Rate change {}".format(lrate))
+        return lrate
 
 
 def main():
@@ -49,10 +48,10 @@ def main():
     model.add(keras.layers.Dense(10, input_shape=[x.shape[1],]))
     model.add(keras.layers.Dense(y.shape[1]))
     model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
-    tb = TensorBoard(log_dir='.', write_images=True, histogram_freq=1)
+    tb = TensorBoard(log_dir='./logs')
     lr_logger = LRTensorBoard('.')
-    lrate = LearningRateScheduler(step_decay)
-    model.fit(x, y, validation_data=(x,y), epochs=20, callbacks=[tb, lr_logger, lrate])
+    my_learning_rate = MyLearningRateScheduler()
+    model.fit(x, y, epochs=50, callbacks=[tb, my_learning_rate, lr_logger])
 
 
 if __name__ == '__main__':
