@@ -5,6 +5,7 @@ import sys
 import math
 import logging
 
+import numpy as np
 from tensorflow import keras
 from tensorflow.keras.utils import to_categorical
 from sklearn.datasets import make_classification
@@ -40,6 +41,11 @@ class MyLearningRateScheduler(LearningRateScheduler):
         return lrate
 
 
+def scheduler(epochs):
+    # 100 is the number of epochs
+    lr = 0.5 * 0.0001 * (1 + np.cos(np.pi *(epochs) / float(100)))
+    return lr
+
 def main():
     x, y = make_classification()
     y = to_categorical(y)
@@ -48,10 +54,11 @@ def main():
     model.add(keras.layers.Dense(10, input_shape=[x.shape[1],]))
     model.add(keras.layers.Dense(y.shape[1]))
     model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
-    tb = TensorBoard(log_dir='./logs')
-    lr_logger = LRTensorBoard('.')
-    my_learning_rate = MyLearningRateScheduler()
-    model.fit(x, y, epochs=50, callbacks=[tb, my_learning_rate, lr_logger])
+    # tb = TensorBoard(log_dir='./logs')
+
+    lr = LearningRateScheduler(scheduler)
+    lr_tb = LRTensorBoard('./logs')
+    model.fit(x, y, epochs=100, callbacks=[lr, lr_tb])
 
 
 if __name__ == '__main__':
