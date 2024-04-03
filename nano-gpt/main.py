@@ -1,11 +1,25 @@
+import math
+
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
 
-DATA_PATH = "/Users/mohamedadelabdelhady/workspace/kaggle-sandbox/nano-gpt/input.txt"
+batch_size = 32  # the number of independent training sequences
+block_size = 8  # the context length
+max_iter = 3_000
+eval_interval = 300
+learning_rate = 1e-2
+device = "cude" if torch.cuda.is_available() else "cpu"
+eval_iters = 200
 torch.manual_seed(1337)
 
-# The simplest model will be a bigram model
+DATA_PATH = "/Users/mohamedadelabdelhady/workspace/kaggle-sandbox/nano-gpt/input.txt"
+
+
+def get_input_data():
+    with open(DATA_PATH, 'r', encoding='utf-8') as f:
+        text = f.read()
+    return text
 
 
 # super simple bigram model
@@ -41,89 +55,72 @@ class BigramLanguageModel(nn.Module):
         return idx
 
 
-def main():
-    text = get_input_data()
-    chars = sorted(list(set(text)))
-    vocab_size = len(chars)
-    stoi = {c: i for i, c in enumerate(chars)}
-    itos = {i: c for i, c in enumerate(chars)}
-    encode = lambda s: [stoi[c] for c in s]
-    decode = lambda l: "".join([itos[x] for x in l])
+text = get_input_data()
+chars = sorted(list(set(text)))
+vocab_size = len(chars)
+stoi = {c: i for i, c in enumerate(chars)}
+itos = {i: c for i, c in enumerate(chars)}
+encode = lambda s: [stoi[c] for c in s]
+decode = lambda l: "".join([itos[x] for x in l])
 
-    print(encode("hi there"))
-    print(decode(encode("hi there")))
+print(encode("hi there"))
+print(decode(encode("hi there")))
 
-    data = torch.tensor(encode(text), dtype=torch.long)
-    print(data.shape, data.dtype)
-    print(data[:100])
+data = torch.tensor(encode(text), dtype=torch.long)
+print(data.shape, data.dtype)
+print(data[:100])
 
-    n = int(0.9 * len(data))
-    train_data = data[:n]
-    val_data = data[n:]
+n = int(0.9 * len(data))
+train_data = data[:n]
+val_data = data[n:]
 
-    # context_size or the block size is the amount of data we feed into the transformer at once
-    # the input to the transformer will be a tensor with shape ranging from 1 -> context_length
-    block_size = 8
-    # x = train_data[:block_size]
-    # y = train_data[1:block_size+1]
-    # print(x)
-    # print(y)
-    # for t in range(block_size):
-    #     context = x[:t+1]
-    #     target = y[t]
-    #     print(f"when context is {context} target is {target}")
+def get_batch(split):
+    data = train_data if split == "train" else val_data
+    ix = torch.randint(len(data) - block_size, (batch_size,))
+    x = torch.stack([data[i:i+block_size] for i in ix])
+    y = torch.stack([data[i+1:i+block_size+1] for i in ix])
+    return x.to(device), y.to(device)
 
-    batch_size = 4
 
-    def get_batch(split):
-        data = train_data if split == "train" else val_data
-        ix = torch.randint(len(data) - block_size, (batch_size,))
-        x = torch.stack([data[i:i+block_size] for i in ix])
-        y = torch.stack([data[i+1:i+block_size+1] for i in ix])
-        return x, y
+model = BigramLanguageModel(vocab_size)
+model = model.to(device)
+xb, yb = get_batch("train")
+pred, loss = model(xb, yb)
+# initial loss should be -ln(1/65)
+print(pred)
+print(loss)
+print(-math.log2(1/vocab_size))
+
+
+@torch.no_grad()
+def estimate_loss():
+    out = {}
+    model.eval()
+    for split in ["train", "val"]:
+        losses = torch.zeros(eval_iters)
+        for k in range(eval_iters):
+            X, Y = get_batch(split)
+            logits, loss = model(X, Y)
+            losses[k] = loss.item()
+        out[split] = losses.mean()
+    model.train()
+    return out
+
+
+optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
+context = torch.zeros((1, 1), dtype=torch.long, device=device)
+print(decode(model.generate(context, max_new_tokens=100)[0].tolist()))
+
+for step in range(max_iter):
+    if step % eval_iters == 0:
+        losses = estimate_loss()
+        print(f"step {step}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}")
     xb, yb = get_batch("train")
-    print("inputs")
-    print(xb.shape)
-    print(xb)
-    print("target")
-    print(yb.shape)
-    print(yb)
+    logits, loss = model(xb, yb)
+    optimizer.zero_grad(set_to_none=True)
+    loss.backward()
+    optimizer.step()
 
-    print("-"*80)
-    for b in range(batch_size):
-        for t in range(block_size):
-            context = xb[b, :t + 1]
-            target = yb[b, t]
-            print(f"when context is {context} target is {target}")
+context = torch.zeros((1, 1), dtype=torch.long, device=device)
+print(decode(model.generate(context, max_new_tokens=500)[0].tolist()))
 
-    print(vocab_size)
-    model = BigramLanguageModel(vocab_size)
-    pred, loss = model(xb, yb)
-    # initial loss should be -ln(1/65)
-    print(pred)
-    print(loss)
-
-    idx = torch.zeros((1,1), dtype=torch.long)
-    print(decode(model.generate(idx, 100)[0].tolist()))
-
-    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3)
-
-    batch_size = 32
-    for step in range(10_000):
-        xb, yb = get_batch("train")
-        logits, loss = model(xb, yb)
-        optimizer.zero_grad(set_to_none=True)
-        loss.backward()
-        optimizer.step()
-    print(loss)
-    idx = torch.zeros((1, 1), dtype=torch.long)
-    print(decode(model.generate(idx, 100)[0].tolist()))
-
-def get_input_data():
-    with open(DATA_PATH, 'r', encoding='utf-8') as f:
-        text = f.read()
-    return text
-
-
-if __name__ == "__main__":
-    main()
