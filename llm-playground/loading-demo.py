@@ -11,10 +11,6 @@ from llama_index.core import (
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
 
-documents = SimpleDirectoryReader("./data").load_data()
-index = VectorStoreIndex.from_documents(documents)
-index.storage_context.persist()
-
 # check if storage already exists
 PERSIST_DIR = "./storage"
 if not os.path.exists(PERSIST_DIR):
