@@ -1,5 +1,6 @@
 import streamlit as st
 from os import listdir
+from functools import lru_cache
 from os.path import isfile, join
 import random
 import time
@@ -40,7 +41,7 @@ nodes = parser.get_nodes_from_documents(documents)
 st.write(f"We have created: {len(nodes)} nodes")
 
 def create_query_engine(index):
-    retriever = VectorIndexRetriever(index=index, similarity_top_k=5)
+    retriever = VectorIndexRetriever(index=index, similarity_top_k=3)
     response_synthesizer = get_response_synthesizer(response_mode=ResponseMode.COMPACT)
 
     # assemble the query engine
@@ -83,6 +84,11 @@ def response_generator():
         time.sleep(0.05)
 
 
+@lru_cache
+def get_response(prompt):
+    return st.session_state.query_engine.query(prompt)
+
+
 # Initialize chat history
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -92,18 +98,39 @@ for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
+import streamlit as st
+
 # Accept user input
 if prompt := st.chat_input("What is up?"):
     # Add user message to chat history
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
     st.session_state.messages.append({"role": "user", "content": prompt})
+
     # Display user message in chat message container
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    response = st.session_state.query_engine.query(prompt)
+    response = get_response(prompt)
+
+    response_message = ""
+
+    if response.source_nodes:
+        response_message += response.response
+        response_message += "\n\n"
+        response_message += """
+| File Name | Created At | Modified At | File Path | Score |
+|-----------|------------|-------------|-----------|-------|
+"""
+        for node in response.source_nodes:
+            metadata = node.to_dict()["node"]['metadata']
+            response_message += f"| {metadata['file_name']} | {metadata['creation_date']} | {metadata['last_modified_date']} | [{metadata['file_path']}]({metadata['file_path']}) | {round(node.score, 2)} |\n"
+    else:
+        response_message = "No relevant documents found."
 
     # Display assistant response in chat message container
     with st.chat_message("assistant"):
-        st.markdown(response)
+        st.markdown(response_message)
+
     # Add assistant response to chat history
-    st.session_state.messages.append({"role": "assistant", "content": response})
+    st.session_state.messages.append({"role": "assistant", "content": response_message})
