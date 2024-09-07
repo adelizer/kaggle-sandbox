@@ -1,0 +1,8 @@
+.env
+data/
+.idea/kaggle-sandbox.iml
+.DS_Store
+.idea/
+.mp3
+*.mp3
+*.pdf
